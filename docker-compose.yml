@@ -1,0 +1,24 @@
+##
+services:
+  nfs:
+    build:
+      context: ./
+      dockerfile: Dockerfile.server
+    image: local/nfs-server
+    hostname: nfs.local
+    privileged: true
+    ports:
+      - "2049:2049"
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./
+      dockerfile: Dockerfile.client
+    image: local/nfs-client
+    privileged: true
+    environment:
+      - NFS_HOST=nfs.local
+    restart: unless-stopped
+
+    

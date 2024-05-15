@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+
+###
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+	dnsutils \
+    iputils-ping \
+    net-tools \
+    ncat 
+
+##
+RUN apt-get update && apt-get install -y \
+	nfs-common
+
+RUN cat <<EOF > /nfs.sh
+#!/bin/bash
+
+set -xeuo pipefail
+
+function start() {
+    mkdir -p /mnt/exports
+    mount -o vers=4 \${NFS_HOST}:/ /mnt/exports
+
+    df -h /mnt/exports
+}
+
+function stop() {
+    umount /mnt/exports
+}
+
+##
+trap stop TERM
+
+start
+
+tail -f /dev/null & wait
+
+EOF
+
+RUN chmod +x /nfs.sh
+
+ENTRYPOINT ["/nfs.sh"]

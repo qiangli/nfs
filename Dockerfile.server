@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+
+###
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+	dnsutils \
+    iputils-ping \
+    net-tools \
+    ncat 
+
+##
+RUN apt-get update && apt-get install -y \
+    nfs-kernel-server \
+    inotify-tools
+
+RUN cat <<EOF > /nfsd.sh
+#!/bin/bash
+
+set -xeuo pipefail
+
+function start() {
+    mkdir -p /exports
+    echo "/exports *(rw,sync,fsid=0,no_subtree_check,no_root_squash)" >> /etc/exports
+
+    service rpcbind start
+    service nfs-kernel-server start
+}
+
+function stop() {
+    service nfs-kernel-server stop
+    service rpcbind stop
+}
+
+##
+trap stop TERM
+
+start
+inotifywait -m /exports
+
+EOF
+
+RUN chmod +x /nfsd.sh
+
+VOLUME /exports
+
+EXPOSE 2049/tcp
+
+ENTRYPOINT ["/nfsd.sh"]
